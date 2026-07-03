@@ -1,5 +1,11 @@
 [
 	{
+		"main": 0, "minor": 9, "revision": 1, "date": "2026-07-03 14:10", "beta": true,
+		"info": [
+			"Added IANA timezone support to i18x date/time formatting: explicit timezone ids are honored, otherwise the runtime timezone from Intl.DateTimeFormat().resolvedOptions().timeZone is used; implemented the timezone and timezoneoffset tags."
+		]
+	},
+	{
 		"main": 0, "minor": 9, "revision": 0, "date": "2026-07-02 16:00", "beta": true,
 		"info": [
 			"Completed the ES module conversion: GUI.js fully ported to GUI.mjs (all classes, panels, menus and input helpers).",
@@ -8,8 +14,7 @@
 			"Added release history support: releases.json loading, automatic i18xe registration of info texts and console output.",
 			"Added the packaging build (gulpfile.mjs): minimized distribution via build filter, JS cleanup and terser plus zip artifact.",
 			"Completed JSDoc for GUI.mjs: all 12 classes and every public member documented (audio inputs, SoundCloud, buttons, modal dialogs, progress bar, slideshow).",
-			"Restructured the project: library and reference app moved to src/, internal check scripts to dev/checks, legacy sources to dev/legacy; fixed the app.mjs import paths.",
-			"Added IANA timezone support to i18x date/time formatting: explicit timezone ids are honored, otherwise the runtime timezone from Intl.DateTimeFormat().resolvedOptions().timeZone is used; implemented the timezone and timezoneoffset tags."
+			"Restructured the project: library and reference app moved to src/, internal check scripts to dev/checks, legacy sources to dev/legacy; fixed the app.mjs import paths."
 		]
 	},
 	{

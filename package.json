@@ -2,7 +2,7 @@
 	"name": "microlib",
 	"displayName": "µLib™",
 	"description": "Modular ES6 (.mjs) web library system: string/date/object utilities, sounds, sprites, E-Ink rendering, i18xe localization and a complete panel/workspace GUI system.",
-	"version": "0.9.0",
+	"version": "0.9.1",
 	"author": {
 		"name": "Meinolf Amekudzi"
 	},
