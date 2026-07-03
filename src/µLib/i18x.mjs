@@ -7,6 +7,9 @@
 /**
  * Functions and classes for internationalization / localization.
  *
+ * Date/time tags support IANA timezones. If no timezone is passed, the runtime timezone
+ * resolved from the ECMAScript Intl database (Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
+ *
  * __Nomenclature__
  * * __Country Code__: an ISO-3166 code
  * * __Language Code__: an ISO-639 code
@@ -17,7 +20,6 @@
  * @see <a target="i18x" ref="https://www.dongleware.com/i18x/i18x.pdf#pagemode=bookmarks&zoom=100">i18x Documentation</a>
  *
  * @module i18x
- * Note: Date/time tags support IANA timezones. If no timezone is passed, the runtime timezone resolved from the ECMAScript Intl database (Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  */
 
 // ToDO:

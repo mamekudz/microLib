@@ -32,6 +32,7 @@
 		"clean": "gulp CLEAN",
 		"dist": "gulp BUILD_DIST",
 		"package": "gulp BUILD_PACKAGE",
+		"docs": "gulp BUILD_DOCS",
 		"history": "gulp SHOW_VERSION_HISTORY",
 		"build": "gulp BUILD_ALL"
 	},
@@ -42,6 +43,7 @@
 		"gulp-mu-build-filter": "^2.0.6",
 		"gulp-mu-js-cleanup": "^1.3.0",
 		"gulp-terser": "^2.1.0",
-		"gulp-zip": "^6.1.0"
+		"gulp-zip": "^6.1.0",
+		"jsdoc": "^4.0.4"
 	}
 }

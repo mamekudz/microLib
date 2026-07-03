@@ -7,18 +7,20 @@
 // gulp BUILD_DIST            => build the minimized distribution into dist/
 // gulp BUILD_PACKAGE         => build dist/ and zip it into packages/
 // gulp SHOW_VERSION_HISTORY  => print the formatted release history (releases.json)
+// gulp BUILD_DOCS             => generate HTML API reference (JSDoc) into docs/api/
 // gulp BUILD_ALL             => clean + package
-// (or: npm run clean / npm run dist / npm run package / npm run history / npm run build)
+// (or: npm run clean / npm run dist / npm run package / npm run docs / npm run history / npm run build)
 //
 // Versioning: releases.json at the project root is the single source of truth
 // (main/minor/revision/date/beta plus i18xe-translatable info strings).
 // BUILD_PACKAGE stamps that version into package.json and the artifact name.
 //
-// Pipeline per module (µLib/*.mjs):
+// Pipeline per module (src/µLib/*.mjs):
 //   gulp-mu-build-filter  => resolves @<BUILD_ONLY_AT_RELEASES:...> areas (Production)
 //   gulp-mu-js-cleanup    => strips comments, empty lines and stray log() calls
 //   gulp-terser           => minimizes the ES module (module mode)
 //   gulp-inject-string    => prepends the copyright/version banner
+//   post-process          => renames to *.min.mjs and rewrites relative import paths
 //
 // The file is a plain ESM module exporting task functions with µGulp
 // metadata tags — it runs under the µGulp dashboard, the gulp CLI and
@@ -29,12 +31,14 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { finished } from 'node:stream/promises';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 const TMP_PATH = join(PROJECT_ROOT, 'tmp');
 const DIST_PATH = join(PROJECT_ROOT, 'dist');
 const PACKAGES_PATH = join(PROJECT_ROOT, 'packages');
+const DOCS_API_PATH = join(PROJECT_ROOT, 'docs', 'api');
 const RELEASES_FILE = join(PROJECT_ROOT, 'releases.json');
 
 const BUILD = 'Production';
@@ -64,6 +68,29 @@ function _GetVersionString(_release) {
 function _GetBanner(_release) {
 	let versionString = 'V' + _GetVersionString(_release) + (_release.beta ? 'ß' : '');
 	return '/* µLib™ ' + versionString + ' © 1996-2026 Meinolf Amekudzi, ' + Date() + ' */\n';
+}
+
+/** Renames minimized modules to *.min.mjs and rewrites relative import paths accordingly.
+ * @param {string} _distLibPath    Absolute path to dist/µLib/.
+ */
+function _PublishMinMjs(_distLibPath) {
+	let files = fs.readdirSync(_distLibPath).filter((_f) => _f.endsWith('.mjs') && !_f.endsWith('.min.mjs'));
+	for (let f of files) {
+		let filePath = join(_distLibPath, f);
+		let content = fs.readFileSync(filePath, 'utf8');
+		content = content.replace(/(\.\/[^"'\\]+)\.mjs/g, '$1.min.mjs');
+		let newName = f.replace(/\.mjs$/, '.min.mjs');
+		fs.writeFileSync(join(_distLibPath, newName), content);
+		fs.unlinkSync(filePath);
+	}
+}
+
+function _Run(_command, _args, _options) {
+	return new Promise((_resolveRun, _rejectRun) => {
+		let child = spawn(_command, _args, { stdio: 'inherit', cwd: PROJECT_ROOT, ..._options });
+		child.on('exit', (_code) => (_code === 0 ? _resolveRun() : _rejectRun(new Error(_command + ' exited with code ' + _code))));
+		child.on('error', _rejectRun);
+	});
 }
 
 // ---------------------------------------------------------------
@@ -115,7 +142,8 @@ export async function BUILD_DIST() {
 			.pipe(inject.prepend(_GetBanner(release)))
 			.pipe(gulp.dest(join(DIST_PATH, 'µLib')))
 	);
-	console.log('minimized modules -> ' + join(DIST_PATH, 'µLib'));
+	_PublishMinMjs(join(DIST_PATH, 'µLib'));
+	console.log('minimized modules -> ' + join(DIST_PATH, 'µLib') + ' (*.min.mjs)');
 
 	// 2. copy the accompanying files
 	for (let extra of DIST_EXTRAS) {
@@ -126,7 +154,7 @@ export async function BUILD_DIST() {
 }
 BUILD_DIST.µDisplayName = 'Build Distribution';
 BUILD_DIST.µDescription = 'Builds the minimized µLib™ distribution (build filter, cleanup, terser, banner) into dist/.';
-BUILD_DIST.µTooltip = 'Every µLib/*.mjs module is minimized individually — the ESM structure stays untouched.';
+BUILD_DIST.µTooltip = 'Every src/µLib/*.mjs module is minimized individually and published as *.min.mjs — the ESM structure and import paths stay consistent.';
 BUILD_DIST.µIcon = '\u25A3';
 BUILD_DIST.µGroup = 'Build';
 BUILD_DIST.µExecutionConcurrency = false;
@@ -203,6 +231,31 @@ SHOW_VERSION_HISTORY.µTooltip = 'Read-only: renders every release (version, dat
 SHOW_VERSION_HISTORY.µIcon = '\u2630';
 SHOW_VERSION_HISTORY.µGroup = 'Info';
 SHOW_VERSION_HISTORY.µExecutionConcurrency = true;
+
+// ---------------------------------------------------------------
+// BUILD_DOCS
+// ---------------------------------------------------------------
+
+export async function BUILD_DOCS() {
+	let release = _GetCurrentRelease();
+	let versionString = _GetVersionString(release);
+	console.log('generating JSDoc API reference V' + versionString + (release.beta ? 'ß' : '') + ' -> ' + DOCS_API_PATH);
+
+	let jsdocBin = join(PROJECT_ROOT, 'node_modules', 'jsdoc', 'jsdoc.js');
+	if (!fs.existsSync(jsdocBin)) {
+		throw new Error('BUILD_DOCS: jsdoc is not installed — run "npm install" first.');
+	}
+
+	fs.rmSync(DOCS_API_PATH, { recursive: true, force: true });
+	await _Run(process.execPath, [jsdocBin, '-c', join(PROJECT_ROOT, 'jsdoc.config.json')]);
+	console.log('API docs ready -> ' + DOCS_API_PATH);
+}
+BUILD_DOCS.µDisplayName = 'Build API Docs';
+BUILD_DOCS.µDescription = 'Generates the HTML API reference from JSDoc comments in src/µLib/ into docs/api/.';
+BUILD_DOCS.µTooltip = 'Uses jsdoc.config.json and docs/JSDOC.md as the docs home page. Open docs/api/index.html locally.';
+BUILD_DOCS.µIcon = '\u2637';
+BUILD_DOCS.µGroup = 'Build/Documentation';
+BUILD_DOCS.µExecutionConcurrency = true;
 
 // ---------------------------------------------------------------
 // BUILD_ALL

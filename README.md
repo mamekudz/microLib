@@ -21,6 +21,7 @@
 - **Complete GUI system** (`GUI.mjs`): panels, docking workspaces, menus, tab views, tool bars, tree views, modal dialogs and an extensive set of input controls
 - **Version history via `releases.json`** with automatic i18xe registration of the release info texts and formatted console output
 - **Prototype extensions** for `String`, `Number`, `Date`, `Array`, `Boolean`, `Math`, `JSON` and `Storage` — importable as side-effect modules
+- **HTML API reference** generated from JSDoc comments in `src/µLib/` (`npm run docs`)
 
 ---
 
@@ -133,6 +134,21 @@ Since the GUI generators emit inline event handlers, `GUI.mjs` automatically bin
 
 ---
 
+## API Documentation (JSDoc)
+
+The modules in `src/µLib/` are documented with JSDoc (American English). To generate the HTML reference locally:
+
+```bash
+npm install          # devDependencies (once)
+npm run docs         # gulp BUILD_DOCS → docs/api/
+```
+
+Then open `docs/api/index.html` in a browser. The generated output (`docs/api/`) is gitignored — regenerate it after source changes. Configuration: `jsdoc.config.json`, home page: `docs/JSDOC.md`.
+
+After pushing to `main`, [GitHub Actions](.github/workflows/docs.yml) publishes the docs to **https://mamekudz.github.io/microLib/** (requires GitHub Pages source set to *GitHub Actions* in the repository settings).
+
+---
+
 ## Packaging (Build)
 
 µLib™ is directly usable without any build. For releases, the Gulp build system (`gulpfile.mjs`) additionally creates a **minimized distribution**:
@@ -142,10 +158,13 @@ npm install          # devDependencies (once)
 npm run dist         # minimized modules into dist/µLib/
 npm run package      # build dist/ + zip artifact into packages/
 npm run build        # full run (clean + package)
+npm run docs         # HTML API reference into docs/api/
 npm run history      # version history (releases.json) in the console
 ```
 
-The pipeline per module: [`gulp-mu-build-filter`](https://www.npmjs.com/package/gulp-mu-build-filter) (resolve build-type areas) → [`gulp-mu-js-cleanup`](https://www.npmjs.com/package/gulp-mu-js-cleanup) (strip comments/log calls) → `gulp-terser` (ESM minimization) → copyright/version banner. Every module is minimized **individually** — the ESM structure and the import paths remain untouched.
+The pipeline per module: [`gulp-mu-build-filter`](https://www.npmjs.com/package/gulp-mu-build-filter) (resolve build-type areas) → [`gulp-mu-js-cleanup`](https://www.npmjs.com/package/gulp-mu-js-cleanup) (strip comments/log calls) → `gulp-terser` (ESM minimization) → copyright/version banner → **`*.min.mjs`** file names with matching import paths. Every module is minimized **individually** — the ESM structure is preserved.
+
+The release zip contains minimized modules only, e.g. `import Config from "./µLib/Config.min.mjs";`. Development uses the readable sources under `src/µLib/*.mjs`.
 
 `releases.json` is the single source of the version: `BUILD_PACKAGE` stamps the current version into `package.json` and the artifact name (e.g. `microlib_V0.9.0_beta.zip`). The gulpfile carries µGulp metadata (`µDisplayName`, `µGroup`, …) and runs both in the µGulp dashboard and with the classic Gulp CLI.
 
@@ -184,6 +203,7 @@ MIT license · © 1996–2026 Meinolf Amekudzi
 - **Vollständiges GUI-System** (`GUI.mjs`): Panels, Docking-Workspaces, Menüs, TabViews, ToolBars, TreeViews, modale Dialoge und ein umfangreicher Satz an Eingabe-Steuerelementen
 - **Versionshistorie per `releases.json`** mit automatischer i18xe-Registrierung der Release-Infos und aufbereiteter Konsolen-Ausgabe
 - **Prototype-Erweiterungen** für `String`, `Number`, `Date`, `Array`, `Boolean`, `Math`, `JSON` und `Storage` — als Side-Effect-Module importierbar
+- **HTML-API-Referenz** aus JSDoc-Kommentaren in `src/µLib/` (`npm run docs`)
 
 ---
 
@@ -296,6 +316,21 @@ Da die GUI-Generatoren Inline-Event-Handler erzeugen, bindet `GUI.mjs` seine Kla
 
 ---
 
+## API-Dokumentation (JSDoc)
+
+Die Module unter `src/µLib/` sind mit JSDoc dokumentiert (American English). HTML-Referenz lokal erzeugen:
+
+```bash
+npm install          # devDependencies (einmalig)
+npm run docs         # gulp BUILD_DOCS → docs/api/
+```
+
+Anschließend `docs/api/index.html` im Browser öffnen. Die generierte Ausgabe (`docs/api/`) ist gitignored — nach Quelländerungen neu erzeugen. Konfiguration: `jsdoc.config.json`, Startseite: `docs/JSDOC.md`.
+
+Nach Push auf `main` veröffentlicht [GitHub Actions](.github/workflows/docs.yml) die Docs unter **https://mamekudz.github.io/microLib/** (Repository-Einstellung: GitHub Pages-Quelle *GitHub Actions*).
+
+---
+
 ## Paketisierung (Build)
 
 µLib™ ist ohne Build direkt nutzbar. Für Veröffentlichungen erzeugt das Gulp-Build-System (`gulpfile.mjs`) zusätzlich eine **minimierte Distribution**:
@@ -305,10 +340,13 @@ npm install          # devDependencies (einmalig)
 npm run dist         # minimierte Module nach dist/µLib/
 npm run package      # dist/ bauen + Zip-Artefakt nach packages/
 npm run build        # kompletter Durchlauf (clean + package)
+npm run docs         # HTML-API-Referenz nach docs/api/
 npm run history      # Versionshistorie (releases.json) in der Konsole
 ```
 
-Die Pipeline pro Modul: [`gulp-mu-build-filter`](https://www.npmjs.com/package/gulp-mu-build-filter) (Build-Typ-Bereiche auflösen) → [`gulp-mu-js-cleanup`](https://www.npmjs.com/package/gulp-mu-js-cleanup) (Kommentare/Log-Aufrufe entfernen) → `gulp-terser` (ESM-Minimierung) → Copyright-/Versions-Banner. Jedes Modul wird **einzeln** minimiert — die ESM-Struktur und die Importpfade bleiben unverändert.
+Die Pipeline pro Modul: [`gulp-mu-build-filter`](https://www.npmjs.com/package/gulp-mu-build-filter) (Build-Typ-Bereiche auflösen) → [`gulp-mu-js-cleanup`](https://www.npmjs.com/package/gulp-mu-js-cleanup) (Kommentare/Log-Aufrufe entfernen) → `gulp-terser` (ESM-Minimierung) → Copyright-/Versions-Banner → Dateinamen **`*.min.mjs`** mit passenden Importpfaden. Jedes Modul wird **einzeln** minimiert — die ESM-Struktur bleibt erhalten.
+
+Das Release-Zip enthält nur minimierte Module, z. B. `import Config from "./µLib/Config.min.mjs";`. Für die Entwicklung gelten die lesbaren Quellen unter `src/µLib/*.mjs`.
 
 `releases.json` ist die einzige Versionsquelle: `BUILD_PACKAGE` stempelt die aktuelle Version in `package.json` und den Artefaktnamen (z. B. `microlib_V0.9.0_beta.zip`). Das Gulpfile trägt µGulp-Metadaten (`µDisplayName`, `µGroup`, …) und läuft sowohl im µGulp-Dashboard als auch mit der klassischen Gulp-CLI.
 

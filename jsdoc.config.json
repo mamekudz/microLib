@@ -1,0 +1,21 @@
+{
+	"tags": {
+		"allowUnknownTags": true
+	},
+	"source": {
+		"include": ["./src/µLib"],
+		"includePattern": "\\.mjs$",
+		"excludePattern": "(^|[/\\\\])__check_"
+	},
+	"plugins": [
+		"plugins/markdown"
+	],
+	"opts": {
+		"destination": "./docs/api",
+		"recurse": true,
+		"readme": "./docs/JSDOC.md",
+		"encoding": "utf8",
+		"private": false,
+		"template": "node_modules/jsdoc/templates/default"
+	}
+}

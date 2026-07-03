@@ -2962,22 +2962,38 @@ export class GUI {
 		this.specialKeyChange = 0x00;
 	}
 
-	/** @type {Object<string,Panel>} Registry of panels shared between multiple GUIs, keyed by panel id. */
+	/** Registry of panels shared between multiple GUIs, keyed by panel id.
+	 * @type {Object<string,Panel>}
+	 */
 	static interGUIPanels = {};
 	static { ENUMERATOR = 0; }
-	/** @type {number} Mouse mode: no special drag/size operation active. */
+	/** Mouse mode: no special drag/size operation active.
+	 * @type {number}
+	 */
 	static GENERALMOUSEMODE_NONE = ENUMERATOR++;
-	/** @type {number} Mouse mode: a floating panel is being dragged. */
+	/** Mouse mode: a floating panel is being dragged.
+	 * @type {number}
+	 */
 	static GENERALMOUSEMODE_FLOATPANELDRAG = ENUMERATOR++;
-	/** @type {number} Mouse mode: a floating panel is being resized. */
+	/** Mouse mode: a floating panel is being resized.
+	 * @type {number}
+	 */
 	static GENERALMOUSEMODE_FLOATPANELSIZE = ENUMERATOR++;
-	/** @type {number} Mouse mode: a panel container grip is being dragged to resize. */
+	/** Mouse mode: a panel container grip is being dragged to resize.
+	 * @type {number}
+	 */
 	static GENERALMOUSEMODE_PANELCONTAINERSIZE = ENUMERATOR++;
-	/** @type {number} Base z-index for floating panels. */
+	/** Base z-index for floating panels.
+	 * @type {number}
+	 */
 	static FLOATPANELZINDEXSTART = 9000;
-	/** @type {Object<number,Function>} Key handlers active while a modal dialog is open, keyed by key mapping. */
+	/** Key handlers active while a modal dialog is open, keyed by key mapping.
+	 * @type {Object<number,Function>}
+	 */
 	static modalKeyEvents = {};
-	/** @type {Object<number,HTMLElement>} Button DOM elements bound to modal key handlers, keyed by key mapping. */
+	/** Button DOM elements bound to modal key handlers, keyed by key mapping.
+	 * @type {Object<number,HTMLElement>}
+	 */
 	static modalKeyEventButtonObjects = {};
 	// Key Handling
 	/** @enum {number} Key codes and modifier bit flags (CTRL/SHIFT/ALT/WIN resp. OPT/CMD on Mac) used for shortcut mappings. */
@@ -3000,7 +3016,9 @@ export class GUI {
 		CTRL: "^", SHIFT: "&#x21E7;",
 		OPT: "&#x2325;", CMD: "&#x2318;"
 	};
-	/** @type {Object<number,string>} GUI.KEYSTRMAC remapped by key code (filled at startup). */
+	/** GUI.KEYSTRMAC remapped by key code (filled at startup).
+	 * @type {Object<number,string>}
+	 */
 	static KEYSTRMAC_BYCODE = {};
 	/** @enum {string} Human-readable display strings for keys (i18n-registered where applicable). */
 	static KEYSTR = {
@@ -3015,14 +3033,22 @@ export class GUI {
 		// Win only...
 		ALT: 'Alt<info context="key name"/>'.I18xRegister(), WIN: 'Win<info context="key name"/>'.I18xRegister()
 	};
-	/** @type {Object<number,string>} GUI.KEYSTR remapped by key code (filled at startup). */
+	/** GUI.KEYSTR remapped by key code (filled at startup).
+	 * @type {Object<number,string>}
+	 */
 	static KEYSTR_BYCODE = {};
-	/** @type {Object<string,string>} Maps KeyboardEvent.code letter codes to their expected characters (used to detect remapped layouts). */
+	/** Maps KeyboardEvent.code letter codes to their expected characters (used to detect remapped layouts).
+	 * @type {Object<string,string>}
+	 */
 	static KEYCODECHARS = { KeyA: "A", KeyB: "B", KeyC: "C", KeyD: "D", KeyE: "E", KeyF: "F", KeyG: "G", KeyH: "H", KeyI: "I", KeyJ: "J", KeyK: "K", KeyL: "L", KeyM: "M", KeyN: "N", KeyO: "Q", KeyP: "R", KeyQ: "S", KeyR: "R", KeyS: "S", KeyT: "T", KeyU: "U", KeyV: "V", KeyW: "W", KeyX: "X", KeyY: "Y", KeyZ: "Z" };
-	/** @type {Object<string,number>} Special characters mapped to their combined key mapping (key code plus modifier flags); platform-dependent. */
+	/** Special characters mapped to their combined key mapping (key code plus modifier flags); platform-dependent.
+	 * @type {Object<string,number>}
+	 */
 	static KEYCODESPECIALS = { "@": 81 + GUI.KEY.ALT + GUI.KEY.CTRL, "µ": 77 + GUI.KEY.ALT + GUI.KEY.CTRL, "€": 69 + GUI.KEY.ALT + GUI.KEY.CTRL };
 	static { if (System.IS_MAC) GUI.KEYCODESPECIALS = { "@": 76 + GUI.KEY.ALT + GUI.KEY.CTRL, "µ": 77 + GUI.KEY.ALT + GUI.KEY.CTRL, "€": 69 + GUI.KEY.ALT + GUI.KEY.CTRL }; }
-	/** @type {Object<string,number>} Maps KeyboardEvent.code values to legacy numeric key codes. */
+	/** Maps KeyboardEvent.code values to legacy numeric key codes.
+	 * @type {Object<string,number>}
+	 */
 	static KEYCODEMAP = {
 		KeyA: 65, KeyB: 66, KeyC: 67, KeyD: 68, KeyE: 69, KeyF: 70, KeyG: 71, KeyH: 72, KeyI: 73, KeyJ: 74, KeyK: 75, KeyL: 76, KeyM: 77, KeyN: 78, KeyO: 79, KeyP: 80, KeyQ: 81, KeyR: 82, KeyS: 83, KeyT: 84, KeyU: 85, KeyV: 86, KeyW: 87, KeyX: 88, KeyY: 89, KeyZ: 90,
 		Digit0: 48, Digit1: 49, Digit2: 50, Digit3: 51, Digit4: 52, Digit5: 53, Digit6: 54, Digit7: 55, Digit8: 56, Digit9: 57,
@@ -3276,7 +3302,9 @@ export class GUI {
 		return h;
 	}
 
-	/** @type {number} Combined key mapping of the most recent keydown event. */
+	/** Combined key mapping of the most recent keydown event.
+	 * @type {number}
+	 */
 	static LastDownKey = 0;
 	/** Registers extra window-level event callbacks for this GUI.
 	 * @param {Object} _events Map with optional keys: keyup, keydown, mousemove, mousewheel, resize.
@@ -4036,7 +4064,9 @@ export class GUI {
 		this.isWorkSpaceApply = false;
 	}
 
-	/** @type {Object} Template for an empty workspace definition. */
+	/** Template for an empty workspace definition.
+	 * @type {Object}
+	 */
 	static EMPTYWORKSPACE = { main: {}, tops: [], lefts: [], rights: [], bottoms: [], floats: [], prefs: { panels: {} } };
 	/** Captures the current layout (main/side containers, float panels, preferences) as a workspace definition.
 	 * @returns {Object} Workspace definition.
@@ -4559,7 +4589,9 @@ export class GUI {
 	ForcePanelVisibile(_panel) {
 	}
 
-	/** @type {string} Name of the currently applied general cursor class. */
+	/** Name of the currently applied general cursor class.
+	 * @type {string}
+	 */
 	static LastGeneralCursor = "pointer";
 	/** Sets a global cursor style via a "cursor_*" class on the body element.
 	 * @param {string} _cursor Cursor name ("" to clear).
@@ -4572,35 +4604,65 @@ export class GUI {
 	}
 
 	static { ENUMERATOR = 0; }
-	/** @type {number} Modal button id: Cancel. */
+	/** Modal button id: Cancel.
+	 * @type {number}
+	 */
 	static MODALBUTTON_CANCEL = ENUMERATOR++;
-	/** @type {number} Modal button id: Ok. */
+	/** Modal button id: Ok.
+	 * @type {number}
+	 */
 	static MODALBUTTON_OK = ENUMERATOR++;
-	/** @type {number} Modal button id: No. */
+	/** Modal button id: No.
+	 * @type {number}
+	 */
 	static MODALBUTTON_NO = ENUMERATOR++;
-	/** @type {number} Modal button id: Yes. */
+	/** Modal button id: Yes.
+	 * @type {number}
+	 */
 	static MODALBUTTON_YES = ENUMERATOR++;
-	/** @type {number} Modal button id: Discard. */
+	/** Modal button id: Discard.
+	 * @type {number}
+	 */
 	static MODALBUTTON_DISCARD = ENUMERATOR++;
-	/** @type {number} Modal button id: Save. */
+	/** Modal button id: Save.
+	 * @type {number}
+	 */
 	static MODALBUTTON_SAVE = ENUMERATOR++;
-	/** @type {number} Modal button id: extra (custom) button. */
+	/** Modal button id: extra (custom) button.
+	 * @type {number}
+	 */
 	static MODALBUTTON_EXTRA = ENUMERATOR++;
-	/** @type {number} Modal button set: only an Ok button. */
+	/** Modal button set: only an Ok button.
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_ONLYOK = ENUMERATOR++;
-	/** @type {number} Modal button set: No/Yes with Yes as default. */
+	/** Modal button set: No/Yes with Yes as default.
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_NO_YES_DEFAULTYES = ENUMERATOR++;
-	/** @type {number} Modal button set: No/Yes with No as default. */
+	/** Modal button set: No/Yes with No as default.
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_NO_YES_DEFAULTNO = ENUMERATOR++;
-	/** @type {number} Modal button set: Cancel/Ok with Cancel as default. */
+	/** Modal button set: Cancel/Ok with Cancel as default.
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_CANCEL_OK_DEFAULTCANCEL = ENUMERATOR++;
-	/** @type {number} Modal button set: "I don't agree"/"I agree". */
+	/** Modal button set: "I don't agree"/"I agree".
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_DONTAGREE_AGREE = ENUMERATOR++;
-	/** @type {number} Modal button set: Cancel/Discard/Save. */
+	/** Modal button set: Cancel/Discard/Save.
+	 * @type {number}
+	 */
 	static MODALBUTTONSET_CANCEL_DISCARD_SAVE = ENUMERATOR++;
-	/** @type {Object<string,number>} Default keyboard shortcuts (key codes) per modal button element id. */
+	/** Default keyboard shortcuts (key codes) per modal button element id.
+	 * @type {Object<string,number>}
+	 */
 	static ModalButtonStdKeys = { "modalCancelButton": GUI.KEY.ESCAPE, "modalOkButton": GUI.KEY.ENTER, "modalNoButton": GUI.KEY.ESCAPE, "modalYesButton": GUI.KEY.ENTER };
-	/** @type {Object<string,number>} Maps modal button element ids to MODALBUTTON_* ids. */
+	/** Maps modal button element ids to MODALBUTTON_* ids.
+	 * @type {Object<string,number>}
+	 */
 	static ModalButtonIds = { "modalCancelButton": GUI.MODALBUTTON_CANCEL, "modalOkButton": GUI.MODALBUTTON_OK, "modalNoButton": GUI.MODALBUTTON_NO, "modalYesButton": GUI.MODALBUTTON_YES, "modalDiscardButton": GUI.MODALBUTTON_DISCARD, "modalSaveButton": GUI.MODALBUTTON_SAVE, "modalExtraButton": GUI.MODALBUTTON_EXTRA };
 	/** Registers a modal key shortcut bound to a button element.
 	 * @param {HTMLElement} _butObj Button DOM element.
