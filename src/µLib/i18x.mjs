@@ -17,7 +17,7 @@
  * @see <a target="i18x" ref="https://www.dongleware.com/i18x/i18x.pdf#pagemode=bookmarks&zoom=100">i18x Documentation</a>
  *
  * @module i18x
- * Note: Timezone support currently is not available, only local browser timezone or utc timezone.
+ * Note: Date/time tags support IANA timezones. If no timezone is passed, the runtime timezone resolved from the ECMAScript Intl database (Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  */
 
 // ToDO:
@@ -100,7 +100,9 @@ class i18xFormat {
 			if (_codeadd === undefined) _codeadd = true;
 			switch (_vardefcodeName) {
 				case "localdate":
-					vardefcodes.localdate = "d=x.DateOfTicks()";
+					// d holds the wall-clock time of the target timezone (tz parameter of the
+					// compiled exec function; falls back to i18x.curTimeZone when not set).
+					vardefcodes.localdate = "d=i18x.DateInTimeZone(x.DateOfTicks(),tz)";
 					vardefcodes[_code] = _vardefcode + "=" + _code;
 					_code = _vardefcode;
 					break;
@@ -161,9 +163,9 @@ class i18xFormat {
 					case "format":
 						if (!formats.hasOwnProperty("_local_" + attrs[attr])) {
 							//_code=attrs[attr]+"("+_code+")";
-							_code = "(" + _code + ").Format('" + attrs[attr] + "')";
+							_code = "(" + _code + ").Format('" + attrs[attr] + "',undefined,tz)";
 						} else {
-							_code = "_local_" + attrs[attr] + "(" + _code + ")";
+							_code = "_local_" + attrs[attr] + "(" + _code + ",tz)";
 						}
 						break;
 				}
@@ -411,9 +413,10 @@ class i18xFormat {
 							case "summertimeoffset":
 								break;
 							case "timezoneoffset":
-								_defTagCodes("localdate", "d.getTimezoneOffset()");
+								_defTagCodes("", "i18x.TimeZoneOffset(x.DateOfTicks(),tz)", "", isClosedTag);
 								break;
 							case "timezone":
+								_defTagCodes("", "(tz||i18x.curTimeZone)", "", isClosedTag);
 								break;
 
 							// BIDI unicode characters
@@ -638,7 +641,7 @@ class i18xFormat {
 					}
 				}
 			}
-			this.execSource = "this.exec=function(x){";
+			this.execSource = "this.exec=function(x,tz){";
 			dochrrpl = defattrs.digits != "";
 			chrrpls = [];
 			m = defattrs.digits.split("|");
@@ -795,6 +798,68 @@ export default class i18x {
 	 * i18x.stdLid
 	 */
 	static stdLid = "en-US";
+
+	/** The current timezone as IANA timezone identifier (e.g. "Europe/Berlin"), resolved once
+	 * from the ECMAScript Intl runtime. Used as fallback whenever no timezone is passed explicitly.
+	 * @static
+	 * @type {string}
+	 * @example
+	 * i18x.curTimeZone // e.g. "Europe/Berlin" or "Asia/Manila"
+	 */
+	static curTimeZone = (typeof Intl !== "undefined") ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
+
+	/** Cache of Intl.DateTimeFormat instances per IANA timezone id (creating them is expensive).
+	 * @static
+	 * @type {object}
+	 */
+	static #timeZoneFormatters = {};
+
+	/** Returns a Date shifted so that its local getters (getHours, getDate, ...) yield the wall-clock
+	 * time of the given IANA timezone. Without a timezone the current runtime timezone (i18x.curTimeZone)
+	 * is used. Invalid timezone ids fall back to the unshifted date (with a console error).
+	 * @method DateInTimeZone
+	 * @static
+	 * @param {Date} _date            The date to convert.
+	 * @param {string} [_timeZone]    Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila").
+	 * @returns {Date}    A Date whose local components represent the wall-clock time in the target timezone.
+	 */
+	static DateInTimeZone(_date, _timeZone) {
+		if (!_timeZone) _timeZone = i18x.curTimeZone;
+		try {
+			let formatter = i18x.#timeZoneFormatters[_timeZone];
+			if (formatter === undefined) {
+				formatter = new Intl.DateTimeFormat("en-US", {
+					timeZone: _timeZone, hour12: false,
+					year: "numeric", month: "2-digit", day: "2-digit",
+					hour: "2-digit", minute: "2-digit", second: "2-digit"
+				});
+				i18x.#timeZoneFormatters[_timeZone] = formatter;
+			}
+			let part, parts = formatter.formatToParts(_date), values = {};
+			for (part of parts) values[part.type] = part.value;
+			// some engines report midnight as hour "24"
+			return new Date(parseInt(values.year, 10), parseInt(values.month, 10) - 1, parseInt(values.day, 10),
+				parseInt(values.hour, 10) % 24, parseInt(values.minute, 10), parseInt(values.second, 10), _date.getMilliseconds());
+		} catch (err) {
+			console.error("i18x.DateInTimeZone: invalid timezone '" + _timeZone + "' (" + err.message + ")");
+			return _date;
+		}
+	}
+
+	/** Returns the timezone offset in minutes (UTC minus wall-clock time, same sign convention as
+	 * Date.getTimezoneOffset) of the given date in the given IANA timezone.
+	 * @method TimeZoneOffset
+	 * @static
+	 * @param {Date} _date            The date for which the offset has to be calculated (DST-aware).
+	 * @param {string} [_timeZone]    Optional, an IANA timezone id; if not set, the current runtime timezone is used.
+	 * @returns {number}    The offset in minutes (e.g. -120 for UTC+2).
+	 */
+	static TimeZoneOffset(_date, _timeZone) {
+		let shifted = i18x.DateInTimeZone(_date, _timeZone);
+		let wallAsUTC = Date.UTC(shifted.getFullYear(), shifted.getMonth(), shifted.getDate(),
+			shifted.getHours(), shifted.getMinutes(), shifted.getSeconds(), shifted.getMilliseconds());
+		return Math.round((_date.getTime() - wallAsUTC) / 60000);
+	}
 
 	/** Map of icons, where the name of the icon is the key and the value is the character which represents the icon.
 	 * Used by rich text tag <icon/>
@@ -1917,8 +1982,7 @@ export default class i18x {
 	 *                         A value of null can be used, if no placeholders are needed.
 	 * @param _lid            {string}   Optional, a localization id of the destination language, a combination of iso-639 and iso-3166, e.g. "en-US".
 	 *                         If not given, the current language will be used.
-	 * @param _timezone       {string}   Optional, a string with timezone information. If not set, the server timezone will be used. Default is "", which means current server/client timezone.
-	 *                         Timezone format format is .NET Timezone.
+	 * @param _timezone       {string}   Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
 	 * @param _doHtmlEntities {boolean}  Optional, whether HTML entities have to be decoded in the translated text, default is false.
 	 * @return {string}    The translated text, including placeholder replaces.
 	 *
@@ -2520,7 +2584,7 @@ export default class i18x {
 								break;
 							case "format":
 								try {
-									value = i18x.formats[_lid][x].exec(value);
+									value = i18x.formats[_lid][x].exec(value, _timezone);
 								} catch (err) {
 									if (i18x.formats[_lid].hasOwnProperty(x)) {
 										value = "i18x Format Error:" + err.message + " (" + value + "," + _lid + ", format " + x + " is not defined)\n";
@@ -2729,7 +2793,7 @@ export default class i18x {
 	 * @param _value    {*}         The value to format.
 	 * @param _format   {string}    The format identifier (former defined with register method).
 	 * @param _lid      {string}    Optional, the localization id to use (default current localization i18x.curLid).
-	 * @param _timezone {string}    Optional, the timezone to use by date calculations.
+	 * @param _timezone {string}    Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
 	 * @return {string} The formatted value.
 	 *
 	 * Note: The preferred method to format values is to use the corresponding prototypes of String, Number or Date object.
@@ -2749,9 +2813,9 @@ export default class i18x {
 			_lid = "en-US";
 		}
 		try {
-			return i18x.formats[_lid][_format].exec(this.valueOf()) + ((isUndefined) ? ' (Localization format missing!)' : '');
+			return i18x.formats[_lid][_format].exec(_value, _timezone) + ((isUndefined) ? ' (Localization format missing!)' : '');
 		} catch (e) {
-			return "i18x format error :" + e.message + "," + this.toString() + "(" + _format + ")";
+			return "i18x format error :" + e.message + "," + _value + "(" + _format + ")";
 		}
 	}
 
@@ -3175,8 +3239,7 @@ String.prototype.I18xRemoveContext = function () {
  *                         A value of null can be used, if no placeholders are needed.
  * @param _lid            {string}   Optional, a localization id of the destination language, a combination of iso-639 and iso-3166, e.g. "en-US".
  *                         If not given, the current language will be used.
- * @param _timezoneId     {string}   Optional, a string with timezone information. If not set, the server timezone will be used. Default is "", which means current server/client timezone.
- *                         Timezone format format is .NET Timezone.
+ * @param _timezoneId     {string}   Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}    The translated text, including placeholder replaces.
  *
  * String can be also a MLJSON (multi localization json).
@@ -3197,8 +3260,7 @@ String.prototype.I18xTrans = function (_placeholders = {}, _lid = undefined, _ti
  *                         A value of null can be used, if no placeholders are needed.
  * @param _lid            {string}   Optional, a localization id of the destination language, a combination of iso-639 and iso-3166, e.g. "en-US".
  *                         If not given, the current language will be used.
- * @param _timezone       {string}   Optional, a string with timezone information. If not set, the server timezone will be used. Default is "", which means current server/client timezone.
- *                         Timezone format format is .NET Timezone.
+ * @param _timezone       {string}   Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}    The translated text with decoded HTML entities, including placeholder replaces.
  */
 String.prototype.I18xTransHtmlEntities = function (_placeholders = {}, _lid = undefined, _timezone = undefined) {
@@ -3220,8 +3282,7 @@ String.prototype.I18xRawTrans = function (_lid = undefined) {
  *                         A value of null can be used, if no placeholders are needed.
  * @param _lid            {string}   Optional, a localization id of the destination language, a combination of iso-639 and iso-3166, e.g. "en-US".
  *                         If not given, the current language will be used.
- * @param _timezone       {string}   Optional, a string with timezone information. If not set, the server timezone will be used. Default is "", which means current server/client timezone.
- *                         Timezone format format is .NET Timezone.
+ * @param _timezone       {string}   Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}    The translated text, including placeholder replaces.
  *
  * @see {i18xTrans}
@@ -3625,7 +3686,7 @@ String.prototype.I18xReNotation = function (_notation = "") {
 /** Formatting a string.
  * @param _format       {string}        The format identifier to use for formatting.
  * @param _lid          {string}        Optional, the language (ISO code) which have to use, if not set, the users selected language will be used.
- * @param _timezone     {string}        Optional, currently not supported (local timezone is used), The timezone which have to use.
+ * @param _timezone     {string}        Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}     A string with the formatted string.
  */
 String.prototype.Format = function (_format = undefined, _lid = undefined, _timezone = undefined) {
@@ -3643,7 +3704,7 @@ String.prototype.Format = function (_format = undefined, _lid = undefined, _time
 /** Formatting a number.
  * @param _format        {string}       The format identifier to use for formatting.
  * @param _lid          {string}        Optional, the language (ISO code) which have to use, if not set, the users selected language will be used.
- * @param _timezone     {string}        Optional, currently not supported (local timezone is used), The timezone which have to use.
+ * @param _timezone     {string}        Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}     A string with the formatted number.
  */
 Number.prototype.Format = function (_format, _lid = undefined, _timezone = undefined) {
@@ -3651,7 +3712,7 @@ Number.prototype.Format = function (_format, _lid = undefined, _timezone = undef
 	if (!i18x.formats.hasOwnProperty(_lid) || !i18x.formats[_lid].hasOwnProperty(_format)) _lid = "en-US";
 	if (!i18x.formats.hasOwnProperty(_lid) || !i18x.formats[_lid].hasOwnProperty(_format)) return "(Localization format missing!)";
 	try {
-		return i18x.formats[_lid][_format].exec(this.valueOf());
+		return i18x.formats[_lid][_format].exec(this.valueOf(), _timezone);
 	} catch (e) {
 		return "i18x format error :" + e.message + "," + this.toString() + "(" + _format + ")";
 	}
@@ -3660,7 +3721,7 @@ Number.prototype.Format = function (_format, _lid = undefined, _timezone = undef
 /** Formatting a unix timestamp.
  * @param _format        {string}       The format identifier to use for formatting.
  * @param _lid          {string}        Optional, the language (ISO code) which have to use, if not set, the users selected language will be used.
- * @param _timezone     {string}        Optional, currently not supported (local timezone is used), The timezone which have to use.
+ * @param _timezone     {string}        Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}     A string with the formatted number.
  */
 Number.prototype.FormatTimestamp = function (_format, _lid = undefined, _timezone = undefined) {
@@ -3670,13 +3731,13 @@ Number.prototype.FormatTimestamp = function (_format, _lid = undefined, _timezon
 /** Formatting ticks (.NET).
  * @param _format        {string}       The format identifier to use for formatting.
  * @param _lid          {string}        Optional, the language (ISO code) which have to use, if not set, the users selected language will be used.
- * @param _timezone     {string}        Optional, currently not supported (local timezone is used), The timezone which have to use.
+ * @param _timezone     {string}        Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}     A string with the formatted ticks (.NET).
  */
 Number.prototype.FormatTicks = function (_format, _lid = undefined, _timezone = undefined) {
 	//let t = (this.valueOf() - 621355968000000000) / 10000, d;
 	//d = new Date(this.valueOf() );
-	return this.valueOf().Format(_format, _lid);
+	return this.valueOf().Format(_format, _lid, _timezone);
 }
 
 // ============================================
@@ -3689,7 +3750,7 @@ Number.prototype.FormatTicks = function (_format, _lid = undefined, _timezone = 
 /** Formatting a Date Object.
  * @param _format        {string}       The format identifier to use for formatting.
  * @param _lid          {string}        Optional, the language (ISO code) which have to use, if not set, the users selected language will be used.
- * @param _timezone     {string}        Optional, currently not supported (local timezone is used), The timezone which have to use.
+ * @param _timezone     {string}        Optional, an IANA timezone id (e.g. "Europe/Berlin", "Asia/Manila"). If not set, the current runtime timezone (i18x.curTimeZone, resolved via Intl.DateTimeFormat().resolvedOptions().timeZone) is used.
  * @return {string}     A string with the formatted date/time.
  */
 Date.prototype.Format = function (_format, _lid = undefined, _timezone = undefined) {
